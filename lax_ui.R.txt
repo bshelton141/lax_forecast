@@ -1,0 +1,37 @@
+#
+# This is the user-interface definition of a Shiny web application. You can
+# run the application by clicking 'Run App' above.
+#
+# Find out more about building applications with Shiny here:
+# 
+#    http://shiny.rstudio.com/
+#
+
+# this Shiny apps site: https://bshelton141.shinyapps.io/LAX_Forecast/
+
+library(shiny)
+
+shinyUI(fluidPage(
+  titlePanel("Los Angeles International Airport: Passenger Arrivals Forecast Sep-Dec 2016"),
+  sidebarLayout(
+    sidebarPanel(selectInput("select_t",
+                             "Select Terminal",
+                             c("All", 
+                               "Tom Bradley International Terminal", 
+                               "Terminal 1", 
+                               "Terminal 2", 
+                               "Terminal 3", 
+                               "Terminal 4",
+                               "Terminal 5", 
+                               "Terminal 6", 
+                               "Terminal 7", 
+                               "Terminal 8", 
+                               "Misc. Terminal"),
+                             multiple = FALSE)),
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Forecast", plotOutput("plot1"), dataTableOutput("table1")),
+        tabPanel("Time-Series Decomposition", plotOutput("plot2"))
+      ))
+  )))
+

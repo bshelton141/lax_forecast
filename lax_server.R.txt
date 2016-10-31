@@ -1,0 +1,78 @@
+#
+# This is the server logic of a Shiny web application. You can run the 
+# application by clicking 'Run App' above.
+#
+# Find out more about building applications with Shiny here:
+# 
+#    http://shiny.rstudio.com/
+#
+
+# this Shiny apps site: https://bshelton141.shinyapps.io/LAX_Forecast/
+
+
+library(shiny)
+
+# Define server logic required to draw a histogram
+shinyServer(function(input, output) {
+  
+  #read and transform the public LAX data set from the internet
+  la <- read.csv("https://data.lacity.org/api/views/g3qu-7q2u/rows.csv", header = TRUE)
+  la <- subset(la, Terminal != "Imperial Terminal")
+  la$date <- as.Date(substr(la$ReportPeriod, 1, 10), format = '%m/%d/%Y')
+  la$my <- substr(la$date, 1, 7)
+  la$month <- substr(la$my, 6, 7)
+  la$year <- substr(la$my, 1, 4)
+  
+  #create the forecast chart
+  output$plot1 <- renderPlot({
+    if(input$select_t == "All") {
+      t1 <- aggregate(Passenger_Count ~ month + year, data = subset(la, Arrival_Departure == "Arrival"), FUN = sum)
+    } else {
+      t1 <- aggregate(Passenger_Count ~ month + year, data = subset(la, Arrival_Departure == "Arrival" & Terminal == input$select_t), FUN = sum)
+    }
+    t2 <- t1$Passenger_Count
+    y <- min(as.numeric(t1$year))
+    t3 <- ts(t2, frequency = 12, start = c(y, min(as.numeric(subset(t1, as.numeric(year) == y)$month))))
+    library(forecast)
+    fit <- HoltWinters(t3)
+    plot(forecast(fit, 4))
+  })
+  
+  #create the forecast table
+  output$table1 <- renderDataTable({
+    if(input$select_t == "All") {
+      t1 <- aggregate(Passenger_Count ~ month + year, data = subset(la, Arrival_Departure == "Arrival"), FUN = sum)
+    } else {
+      t1 <- aggregate(Passenger_Count ~ month + year, data = subset(la, Arrival_Departure == "Arrival" & Terminal == input$select_t), FUN = sum)
+    }
+    t2 <- t1$Passenger_Count
+    y <- min(as.numeric(t1$year))
+    t3 <- ts(t2, frequency = 12, start = c(y, min(as.numeric(subset(t1, as.numeric(year) == y)$month))))
+    library(forecast)
+    fit <- HoltWinters(t3)
+    u <- data.frame(forecast(fit, 4))
+    u$Month <- rownames(u)
+    u <- data.frame(u$Month, u$Point.Forecast, u$Lo.95, u$Hi.95)
+    colnames(u) <- c("Forecasted Month", "Forecast","Lower 95% Confidence", "Upper 95% Confidence")
+    for(i in 2:4) {
+      u[, i] <- format(round(u[, i], 0), big.mark = ",", scientific = FALSE)
+    }
+    print(u)
+  })
+  
+  #create the seasonal decomposition chart
+  output$plot2 <- renderPlot({
+    if(input$select_t == "All") {
+      t1 <- aggregate(Passenger_Count ~ month + year, data = subset(la, Arrival_Departure == "Arrival"), FUN = sum)
+    } else {
+      t1 <- aggregate(Passenger_Count ~ month + year, data = subset(la, Arrival_Departure == "Arrival" & Terminal == input$select_t), FUN = sum)
+    }
+    t2 <- t1$Passenger_Count
+    y <- min(as.numeric(t1$year))
+    t3 <- ts(t2, frequency = 12, start = c(y, min(as.numeric(subset(t1, as.numeric(year) == y)$month))))
+    t4 <- decompose(t3)
+    plot(t4)
+  })
+  
+})
+
